@@ -10,9 +10,6 @@ import {IComet} from "./interfaces/IComet.sol";
 contract CompoundV3Migrator is Migrator {
     using SafeERC20 for IERC20;
 
-    error TransferFailed();
-    error WithdrawFailed();
-
     constructor(
         address _aavePool,
         address _vrfCoordinator,
