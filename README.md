@@ -26,6 +26,7 @@ The cooldown period is implemented as a security measure to avoid cycle attacks.
 - **NFT Allowlist**: Allowlist NFTs that can be donated to avoid giving out spam as rewards
 - **Add support for ERC20Permit**: To avoid having to approve the contract before moving tokens in it
 - **Fix CompoundV3Migrator test in fork mode**: Currently failing with `BorrowTooSmall()` on Ethereum Mainnet
+- **Fuzz testing**: At least that events in `unclaimedRewardIndices` are always unclaimed
 
 ## Architecture
 
