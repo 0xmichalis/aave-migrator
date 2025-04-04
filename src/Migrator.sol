@@ -108,6 +108,8 @@ contract Migrator is Ownable, ReentrancyGuard, IERC721Receiver, VRFConsumerBaseV
     /// @notice Donate a single NFT to be used as a reward
     /// @param erc721 The ERC721 contract address
     /// @param tokenId The token ID to donate
+    /// TODO: Either gate this function or have a list of approved NFTs that can be donated
+    /// to avoid spamming the contract with random NFTs.
     function donate(address erc721, uint256 tokenId) external {
         _donate(erc721, tokenId);
     }
@@ -115,6 +117,8 @@ contract Migrator is Ownable, ReentrancyGuard, IERC721Receiver, VRFConsumerBaseV
     /// @notice Donate multiple NFTs to be used as rewards
     /// @param erc721s Array of ERC721 contract addresses
     /// @param tokenIds Array of token IDs to donate
+    /// TODO: Either gate this function or have a list of approved NFTs that can be donated
+    /// to avoid spamming the contract with random NFTs.
     function donateBatch(address[] calldata erc721s, uint256[] calldata tokenIds) external {
         if (erc721s.length != tokenIds.length) {
             revert ArrayLengthMismatch();
