@@ -36,7 +36,7 @@ contract MigratorTest is Test {
     uint32 constant CALLBACK_GAS_LIMIT = 100000;
     uint256 constant MINIMUM_POSITION_SIZE = 1000;
 
-    function setUp() public {
+    function setUp() public virtual {
         // Check if we're in fork mode
         isForkMode = vm.envOr("FORK_MODE", false);
 
