@@ -29,3 +29,16 @@ forge test
 ```sh
 forge snapshot
 ```
+
+## Test in forked network
+
+```console
+cp .env.example .env
+# Update .env with your values
+# Then, source the environment file
+source .env
+# Run tests
+FORK_MODE=true forge test \
+  --fork-url $FORK_URL \
+  -vvv
+```
