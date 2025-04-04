@@ -159,8 +159,9 @@ contract Migrator is Ownable, ReentrancyGuard, IERC721Receiver, VRFConsumerBaseV
         // Transfer tokens and open AAVE position
         (address underlyingToken, uint256 underlyingAmount) =
             transferTokensForMigration(token, amount);
+        request.amount = underlyingAmount;
         // slither-disable-next-line reentrancy-no-eth
-        request.amount = openAavePosition(underlyingToken, underlyingAmount);
+        openAavePosition(underlyingToken, underlyingAmount);
 
         // Request randomness to oracle to select a reward
         //slither-disable-next-line reentrancy-no-eth
@@ -223,7 +224,7 @@ contract Migrator is Ownable, ReentrancyGuard, IERC721Receiver, VRFConsumerBaseV
     /// @dev Transfers tokens from user, supplies to AAVE, and starts cooldown period
     /// @param token The underlying token to supply
     /// @param amount The amount of tokens to supply
-    function openAavePosition(address token, uint256 amount) internal returns (uint256) {
+    function openAavePosition(address token, uint256 amount) internal {
         // Get the aToken address
         address aToken = IPool(AAVE_POOL).getReserveData(token).aTokenAddress;
         if (aToken == address(0)) {
@@ -246,9 +247,6 @@ contract Migrator is Ownable, ReentrancyGuard, IERC721Receiver, VRFConsumerBaseV
             address(this), // We keep the aTokens until COOLDOWN_PERIOD passes to avoid cycle attacks
             AAVE_REFERRAL_CODE
         );
-
-        // Return the exact amount that was supplied - this will be the amount we track and transfer back
-        return amount;
     }
 
     /// @notice Callback function used by VRF Coordinator
