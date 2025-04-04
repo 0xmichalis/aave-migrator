@@ -39,11 +39,8 @@ contract CompoundV3Migrator is Migrator {
         uint256 balanceBefore = IERC20(underlyingToken).balanceOf(address(this));
 
         // Withdraw underlying tokens
-        try comet.withdraw(underlyingToken, amount) {
-            uint256 balanceAfter = IERC20(underlyingToken).balanceOf(address(this));
-            underlyingAmount = balanceAfter - balanceBefore;
-        } catch {
-            revert WithdrawFailed();
-        }
+        comet.withdraw(underlyingToken, amount);
+        uint256 balanceAfter = IERC20(underlyingToken).balanceOf(address(this));
+        underlyingAmount = balanceAfter - balanceBefore;
     }
 }
