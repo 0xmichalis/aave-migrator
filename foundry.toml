@@ -1,6 +1,13 @@
 [profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+remappings = [
+    "@aave/=lib/aave-v3-origin/src",
+    "@openzeppelin/=lib/openzeppelin-contracts/",
+    "@chainlink/=lib/chainlink/"
+]
 optimizer_runs = 1000000
-libs = ['node_modules', 'lib']
 
 [fuzz]
 runs = 500
