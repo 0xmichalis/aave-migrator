@@ -1,11 +1,6 @@
 # AAVE Migrator
 
-[![Build](https://github.com/0xmichalis/aave-migrator/actions/workflows/build.yml/badge.svg)](https://github.com/
-0xmichalis/aave-migrator/actions/workflows/build.yml) [![Tests](https://github.com/0xmichalis/aave-migrator/actions/
-workflows/test.yml/badge.svg)](https://github.com/0xmichalis/aave-migrator/actions/workflows/test.yml) [![Lint](https://
-github.com/0xmichalis/aave-migrator/actions/workflows/lint.yml/badge.svg)](https://github.com/0xmichalis/aave-migrator/
-actions/workflows/lint.yml) [![Static analysis](https://github.com/0xmichalis/aave-migrator/actions/workflows/analyze.yml/
-badge.svg)](https://github.com/0xmichalis/aave-migrator/actions/workflows/analyze.yml)
+[![Build](https://github.com/0xmichalis/aave-migrator/actions/workflows/build.yml/badge.svg)](https://github.com/0xmichalis/aave-migrator/actions/workflows/build.yml) [![Tests](https://github.com/0xmichalis/aave-migrator/actions/workflows/test.yml/badge.svg)](https://github.com/0xmichalis/aave-migrator/actions/workflows/test.yml) [![Lint](https://github.com/0xmichalis/aave-migrator/actions/workflows/lint.yml/badge.svg)](https://github.com/0xmichalis/aave-migrator/actions/workflows/lint.yml) [![Static analysis](https://github.com/0xmichalis/aave-migrator/actions/workflows/analyze.yml/badge.svg)](https://github.com/0xmichalis/aave-migrator/actions/workflows/analyze.yml)
 
 A smart contract system that allows users to migrate their tokens to AAVE v3 and receive NFT rewards for doing so.
 
