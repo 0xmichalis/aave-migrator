@@ -34,6 +34,7 @@ contract MigratorTest is Test {
     bytes32 constant KEY_HASH = bytes32(uint256(1));
     uint64 constant SUBSCRIPTION_ID = 1;
     uint32 constant CALLBACK_GAS_LIMIT = 100000;
+    // NOTE: This may cause the tests to fail because of a supply cap error in forking mode (51)
     uint256 constant MINIMUM_POSITION_SIZE = 1000;
 
     function setUp() public virtual {
