@@ -27,6 +27,7 @@ The cooldown period is implemented as a security measure to avoid cycle attacks.
 - **Add support for ERC20Permit**: To avoid having to approve the contract before moving tokens in it
 - **Fix CompoundV3Migrator test in fork mode**: Currently failing with `BorrowTooSmall()` on Ethereum Mainnet
 - **Fuzz testing**: At least that events in `unclaimedRewardIndices` are always unclaimed
+- **Configurable cooldown period**: This is currently hardcoded to 30 days but could be configurable
 
 ## Architecture
 
