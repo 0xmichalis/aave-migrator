@@ -4,3 +4,6 @@
 [submodule "lib/comet"]
 	path = lib/comet
 	url = https://github.com/compound-finance/comet
+[submodule "lib/aave-v3-origin"]
+	path = lib/aave-v3-origin
+	url = https://github.com/aave-dao/aave-v3-origin
