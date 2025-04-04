@@ -1,2 +1,4 @@
-CounterTest:testFuzz_SetNumber(uint256) (runs: 500, μ: 30950, ~: 31229)
-CounterTest:test_Increment() (gas: 31239)
+MigratorTest:test_ClaimAavePosition() (gas: 541437)
+MigratorTest:test_DonateBatchNFTs() (gas: 247534)
+MigratorTest:test_DonateNFT() (gas: 156170)
+MigratorTest:test_MigratePosition() (gas: 511421)
