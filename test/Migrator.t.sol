@@ -183,9 +183,10 @@ contract MigratorTest is Test {
         uint256 aliceATokenBalanceAfter = aToken.balanceOf(alice);
         uint256 migratorATokenBalanceAfter = aToken.balanceOf(address(migrator));
 
-        assertEq(
+        assertApproxEqAbs(
             aliceTokenBalanceBefore - aliceTokenBalanceAfter,
             amount,
+            1, // Allow for 1 wei rounding error
             "Alice's token balance should decrease by the amount migrated"
         );
         assertEq(
@@ -198,9 +199,10 @@ contract MigratorTest is Test {
             0,
             "Alice's aToken balance should not change"
         );
-        assertEq(
+        assertApproxEqAbs(
             migratorATokenBalanceAfter - migratorATokenBalanceBefore,
             amount,
+            1, // Allow for 1 wei rounding error
             "Migrator's aToken balance should increase by the amount migrated"
         );
 
