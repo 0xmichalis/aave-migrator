@@ -71,14 +71,10 @@ contract MigratorTest is Test {
             address aTokenAddress = aavePool.getReserveData(address(token)).aTokenAddress;
             require(aTokenAddress != address(0), "aToken not found for the provided token");
             aToken = IERC20(aTokenAddress);
-
-            // Ensure Alice has enough tokens
-            deal(address(token), alice, MINIMUM_POSITION_SIZE * 1000);
         } else {
             // In local mode, deploy mock contracts
             // Deploy mock ERC20 token
             MintableERC20 mockToken = new MintableERC20("Fartcoin", "FARTCOIN", 18);
-            mockToken.mint(alice, 1000000 ether);
             token = IERC20(address(mockToken));
 
             // Deploy mock AAVE pool and create aToken
@@ -86,6 +82,9 @@ contract MigratorTest is Test {
             aavePool = mockAavePool;
             aToken = IERC20(mockAavePool.createAToken(address(token)));
         }
+
+        // Ensure Alice has enough tokens
+        deal(address(token), alice, MINIMUM_POSITION_SIZE * 1000);
 
         // Deploy mock ERC721
         nft = new ERC721Mock("Cryptopunks", "PUNK");
