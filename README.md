@@ -25,6 +25,7 @@ The cooldown period is implemented as a security measure to avoid cycle attacks.
 
 - **NFT Allowlist**: Allowlist NFTs that can be donated to avoid giving out spam as rewards
 - **Tests for CompoundV3Migrator.sol**: Currently missing
+- **Add support for ERC20Permit**: To avoid having to approve the contract before moving tokens in it
 
 ## Architecture
 
