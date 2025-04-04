@@ -1,4 +1,4 @@
-MigratorTest:test_ClaimAavePosition() (gas: 541437)
-MigratorTest:test_DonateBatchNFTs() (gas: 247534)
-MigratorTest:test_DonateNFT() (gas: 156170)
-MigratorTest:test_MigratePosition() (gas: 511421)
+MigratorTest:test_ClaimAavePosition() (gas: 543840)
+MigratorTest:test_DonateBatchNFTs() (gas: 247512)
+MigratorTest:test_DonateNFT() (gas: 156159)
+MigratorTest:test_MigratePosition() (gas: 511439)

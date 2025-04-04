@@ -49,6 +49,7 @@ contract Migrator is Ownable, ReentrancyGuard, IERC721Receiver, VRFConsumerBaseV
         uint256 requestId;
         uint256 amount;
         uint256 timestamp;
+        uint256 initialNormalizedIncome;
     }
 
     struct Position {
@@ -136,29 +137,6 @@ contract Migrator is Ownable, ReentrancyGuard, IERC721Receiver, VRFConsumerBaseV
         emit Donated(msg.sender, erc721, tokenId);
     }
 
-    /// @notice Claim AAVE position after cooldown period
-    /// @dev Transfers aTokens to the user if cooldown period has passed
-    /// @param token The underlying token address
-    function claimAavePosition(address token) external {
-        MigrationRequest storage request = requests[msg.sender][token];
-
-        // Check cooldown period
-        if (block.timestamp < request.timestamp + COOLDOWN_PERIOD) {
-            revert CooldownActive();
-        }
-
-        // Get the aToken address
-        address aToken = IPool(AAVE_POOL).getReserveData(token).aTokenAddress;
-        if (aToken == address(0)) {
-            revert TokenNotSupported(token);
-        }
-
-        // Transfer aTokens to user
-        uint256 amount = request.amount;
-        request.amount = 0; // Clear position before transfer
-        IERC20(aToken).safeTransfer(msg.sender, amount);
-    }
-
     function migratePosition(address token, uint256 amount) external nonReentrant {
         if (unclaimedRewardIndices.length == 0) {
             revert NoRewardsAvailable();
@@ -193,6 +171,41 @@ contract Migrator is Ownable, ReentrancyGuard, IERC721Receiver, VRFConsumerBaseV
         positions[requestId] = Position({user: msg.sender, token: token});
     }
 
+    /// @notice Claim AAVE position after cooldown period
+    /// @dev Transfers aTokens to the user if cooldown period has passed
+    /// @param token The underlying token address
+    function claimAavePosition(address token) external {
+        MigrationRequest storage request = requests[msg.sender][token];
+
+        // Check cooldown period
+        if (block.timestamp < request.timestamp + COOLDOWN_PERIOD) {
+            revert CooldownActive();
+        }
+
+        // Get the aToken address
+        address aToken = IPool(AAVE_POOL).getReserveData(token).aTokenAddress;
+        if (aToken == address(0)) {
+            revert TokenNotSupported(token);
+        }
+
+        // Get the original amount supplied
+        uint256 amount = request.amount;
+
+        // Clear position before transfer to prevent reentrancy
+        request.amount = 0;
+
+        // Get the normalized income values
+        uint256 initialNormalizedIncome = request.initialNormalizedIncome;
+        uint256 currentNormalizedIncome = IPool(AAVE_POOL).getReserveNormalizedIncome(token);
+
+        // Calculate this user's share of aTokens including interest earned during their holding period
+        // Formula: amount * (currentNormalizedIncome / initialNormalizedIncome)
+        uint256 amountToTransfer = (amount * currentNormalizedIncome) / initialNormalizedIncome;
+
+        // Transfer aTokens to user - they get their proportional share including interest
+        IERC20(aToken).safeTransfer(msg.sender, amountToTransfer);
+    }
+
     /// @notice Transfer tokens from user to this contract
     /// @dev Must be implemented by the contract that uses this contract
     /// @param token The token address
@@ -217,13 +230,14 @@ contract Migrator is Ownable, ReentrancyGuard, IERC721Receiver, VRFConsumerBaseV
             revert TokenNotSupported(token);
         }
 
+        // Store the normalized income at deposit time
+        uint256 normalizedIncome = IPool(AAVE_POOL).getReserveNormalizedIncome(token);
+        requests[msg.sender][token].initialNormalizedIncome = normalizedIncome;
+
         // Approve AAVE pool to spend tokens
         if (!IERC20(token).approve(AAVE_POOL, amount)) {
             revert ApproveFailed();
         }
-
-        // Check aToken balance before supply
-        uint256 aTokenBalanceBefore = IAToken(aToken).balanceOf(address(this));
 
         // Supply tokens to AAVE
         IPool(AAVE_POOL).supply(
@@ -233,9 +247,8 @@ contract Migrator is Ownable, ReentrancyGuard, IERC721Receiver, VRFConsumerBaseV
             AAVE_REFERRAL_CODE
         );
 
-        // Check aToken balance after supply - the difference need to be tracked for the user
-        uint256 aTokenBalanceAfter = IAToken(aToken).balanceOf(address(this));
-        return aTokenBalanceAfter - aTokenBalanceBefore;
+        // Return the exact amount that was supplied - this will be the amount we track and transfer back
+        return amount;
     }
 
     /// @notice Callback function used by VRF Coordinator

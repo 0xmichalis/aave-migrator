@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 import {IPool} from "@aave/contracts/interfaces/IPool.sol";
 import {IAToken} from "@aave/contracts/interfaces/IAToken.sol";
@@ -15,6 +15,9 @@ import {AavePoolMock} from "./mocks/AavePoolMock.sol";
 import {ERC721Mock} from "./mocks/ERC721Mock.sol";
 
 contract MigratorTest is Test {
+    // Test mode
+    bool internal isForkMode;
+
     // Users
     address alice;
     address bob;
@@ -22,9 +25,9 @@ contract MigratorTest is Test {
     // Contracts
     Migrator migrator;
     VRFCoordinatorV2Mock vrfCoordinator;
-    MintableERC20 token;
+    IERC20 token;
     ERC721Mock nft;
-    AavePoolMock aavePool;
+    IPool aavePool;
     IERC20 aToken;
 
     // Constants
@@ -34,6 +37,9 @@ contract MigratorTest is Test {
     uint256 constant MINIMUM_POSITION_SIZE = 1000;
 
     function setUp() public {
+        // Check if we're in fork mode
+        isForkMode = vm.envOr("FORK_MODE", false);
+
         // Create users
         alice = makeAddr("alice");
         bob = makeAddr("bob");
@@ -50,18 +56,41 @@ contract MigratorTest is Test {
         vrfCoordinator.createSubscription();
         vrfCoordinator.fundSubscription(SUBSCRIPTION_ID, 10 ether);
 
-        // Deploy mock ERC20 token
-        token = new MintableERC20("Fartcoin", "FARTCOIN", 18);
-        token.mint(alice, 1000000 ether);
+        if (isForkMode) {
+            // In fork mode, use existing contracts from the network
+            address aavePoolAddress = vm.envOr("AAVE_POOL_ADDRESS", address(0));
+            address tokenAddress = vm.envOr("ERC20_TOKEN_ADDRESS", address(0));
+
+            require(aavePoolAddress != address(0), "AAVE_POOL_ADDRESS must be set in fork mode");
+            require(tokenAddress != address(0), "ERC20_TOKEN_ADDRESS must be set in fork mode");
+
+            aavePool = IPool(aavePoolAddress);
+            token = IERC20(tokenAddress);
+
+            // Get the aToken address from the AAVE pool
+            address aTokenAddress = aavePool.getReserveData(address(token)).aTokenAddress;
+            require(aTokenAddress != address(0), "aToken not found for the provided token");
+            aToken = IERC20(aTokenAddress);
+
+            // Ensure Alice has enough tokens
+            deal(address(token), alice, MINIMUM_POSITION_SIZE * 1000);
+        } else {
+            // In local mode, deploy mock contracts
+            // Deploy mock ERC20 token
+            MintableERC20 mockToken = new MintableERC20("Fartcoin", "FARTCOIN", 18);
+            mockToken.mint(alice, 1000000 ether);
+            token = IERC20(address(mockToken));
+
+            // Deploy mock AAVE pool and create aToken
+            AavePoolMock mockAavePool = new AavePoolMock();
+            aavePool = mockAavePool;
+            aToken = IERC20(mockAavePool.createAToken(address(token)));
+        }
 
         // Deploy mock ERC721
         nft = new ERC721Mock("Cryptopunks", "PUNK");
         nft.mint(bob, 1);
         nft.mint(bob, 2);
-
-        // Deploy mock AAVE pool and create aToken
-        aavePool = new AavePoolMock();
-        aToken = IERC20(aavePool.createAToken(address(token)));
 
         // Deploy Migrator
         migrator =
@@ -139,14 +168,41 @@ contract MigratorTest is Test {
         vm.startPrank(alice);
         token.approve(address(migrator), type(uint256).max);
 
+        uint256 aliceTokenBalanceBefore = token.balanceOf(alice);
+        uint256 migratorTokenBalanceBefore = token.balanceOf(address(migrator));
+        uint256 aliceATokenBalanceBefore = aToken.balanceOf(alice);
+        uint256 migratorATokenBalanceBefore = aToken.balanceOf(address(migrator));
+
         // Migrate position
         uint256 amount = MINIMUM_POSITION_SIZE;
         migrator.migratePosition(address(token), amount);
 
         // Verify tokens were transferred and aTokens were minted
-        assertEq(token.balanceOf(alice), 1000000 ether - amount);
-        assertEq(token.balanceOf(address(aavePool)), amount);
-        assertEq(aToken.balanceOf(address(migrator)), amount);
+        uint256 aliceTokenBalanceAfter = token.balanceOf(alice);
+        uint256 migratorTokenBalanceAfter = token.balanceOf(address(migrator));
+        uint256 aliceATokenBalanceAfter = aToken.balanceOf(alice);
+        uint256 migratorATokenBalanceAfter = aToken.balanceOf(address(migrator));
+
+        assertEq(
+            aliceTokenBalanceBefore - aliceTokenBalanceAfter,
+            amount,
+            "Alice's token balance should decrease by the amount migrated"
+        );
+        assertEq(
+            migratorTokenBalanceBefore - migratorTokenBalanceAfter,
+            0,
+            "Migrator's token balance should not change"
+        );
+        assertEq(
+            aliceATokenBalanceAfter - aliceATokenBalanceBefore,
+            0,
+            "Alice's aToken balance should not change"
+        );
+        assertEq(
+            migratorATokenBalanceAfter - migratorATokenBalanceBefore,
+            amount,
+            "Migrator's aToken balance should increase by the amount migrated"
+        );
 
         // Simulate VRF callback
         uint256 requestId = 1;
@@ -165,20 +221,49 @@ contract MigratorTest is Test {
         // First migrate a position
         test_MigratePosition();
 
+        // Get the normalized income right after migration
+        uint256 initialNormalizedIncome =
+            IPool(address(aavePool)).getReserveNormalizedIncome(address(token));
+
         // Try to claim before cooldown - should revert
         vm.startPrank(alice);
         vm.expectRevert(Migrator.CooldownActive.selector);
         migrator.claimAavePosition(address(token));
 
-        // Wait for cooldown
+        // Wait for cooldown and let interest accrue
         skip(30 days);
 
         // Claim position
         migrator.claimAavePosition(address(token));
 
+        // Get final normalized income
+        uint256 finalNormalizedIncome =
+            IPool(address(aavePool)).getReserveNormalizedIncome(address(token));
+
         // Verify aTokens were transferred
-        assertEq(aToken.balanceOf(alice), MINIMUM_POSITION_SIZE);
-        assertEq(aToken.balanceOf(address(migrator)), 0);
+        uint256 aliceTokenBalanceAfterClaim = aToken.balanceOf(alice);
+        uint256 migratorTokenBalanceAfterClaim = aToken.balanceOf(address(migrator));
+
+        // Calculate expected amount with interest
+        uint256 expectedAmount =
+            (MINIMUM_POSITION_SIZE * finalNormalizedIncome) / initialNormalizedIncome;
+
+        // Verify Alice received the correct amount with interest
+        assertApproxEqAbs(
+            aliceTokenBalanceAfterClaim,
+            expectedAmount,
+            1, // Allow for 1 wei rounding error
+            "Alice should receive original amount plus interest"
+        );
+
+        // Verify Migrator's balance is close to 0 (may have dust from rounding)
+        assertApproxEqAbs(
+            migratorTokenBalanceAfterClaim,
+            0,
+            1, // Allow for 1 wei rounding error
+            "Migrator should have no aTokens left (except dust)"
+        );
+
         vm.stopPrank();
     }
 }

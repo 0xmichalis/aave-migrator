@@ -231,7 +231,8 @@ contract AavePoolMock is IPool {
         override
         returns (uint256)
     {
-        return 0;
+        // TODO: This should be scaling upwards with time
+        return 1;
     }
 
     function getReserveNormalizedVariableDebt(address /* asset */ )
